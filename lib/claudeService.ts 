@@ -1,0 +1,172 @@
+// lib/claudeService.ts
+// Service pour interagir avec l'API Claude (Confident IA)
+
+import Anthropic from '@anthropic-ai/sdk';
+
+// Initialiser le client Claude
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+export interface ConfidentMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface UserContext {
+  zodiacSign?: string;
+  name?: string;
+  age?: number;
+  bio?: string;
+  recentMatches?: number;
+}
+
+/**
+ * Génère le prompt système pour le Confident IA
+ * Personnalisé selon le profil astrologique de l'utilisateur
+ */
+function generateSystemPrompt(userContext?: UserContext): string {
+  const basePrompt = `Tu es Confident, l'IA compagnon de XMOON, une application de rencontres basée sur l'astrologie.
+
+Tu es un guide bienveillant, empathique et profondément ancré dans la sagesse astrologique. 
+Tu aides les utilisateurs à :
+- Comprendre leur personnalité astrologique
+- Naviguer leurs relations amoureuses
+- Interpréter la compatibilité avec leurs matches
+- Donner des conseils relationnels basés sur les astres
+
+Ton style est :
+- Chaleureux et encourageant
+- Mystique mais accessible
+- Toujours positif et constructif
+- Utilise des émojis astrologiques ✨🌙⭐🔮
+
+IMPORTANT : Tu es un confident, pas un thérapeute. Pour des problèmes sérieux, tu recommandes de consulter un professionnel.`;
+
+  if (userContext?.zodiacSign) {
+    return `${basePrompt}
+
+L'utilisateur est ${userContext.zodiacSign}. Adapte tes conseils en fonction des traits de ce signe :
+- Forces naturelles
+- Défis potentiels
+- Style relationnel
+- Compatibilités naturelles`;
+  }
+
+  return basePrompt;
+}
+
+/**
+ * Envoie un message au Confident IA et reçoit une réponse
+ */
+export async function sendMessageToConfident(
+  messages: ConfidentMessage[],
+  userContext?: UserContext
+): Promise<string> {
+  try {
+    const systemPrompt = generateSystemPrompt(userContext);
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+    });
+
+    // Extraire le texte de la réponse
+    const textContent = response.content.find(block => block.type === 'text');
+    if (textContent && 'text' in textContent) {
+      return textContent.text;
+    }
+
+    return "Désolé, je n'ai pas pu générer une réponse. Réessaye ! ✨";
+  } catch (error) {
+    console.error('Erreur lors de l\'appel à Claude:', error);
+    throw new Error('Impossible de contacter le Confident IA');
+  }
+}
+
+/**
+ * Génère une analyse de compatibilité détaillée entre deux signes
+ */
+export async function generateCompatibilityAnalysis(
+  userSign: string,
+  matchSign: string,
+  matchName?: string
+): Promise<string> {
+  const prompt = `Analyse la compatibilité astrologique entre ${userSign} et ${matchSign}${matchName ? ` (${matchName})` : ''}.
+
+Donne une analyse détaillée en 3-4 paragraphes couvrant :
+1. La dynamique générale de la relation
+2. Les forces de cette combinaison
+3. Les défis potentiels et comment les surmonter
+4. Un conseil pratique pour démarrer une conversation
+
+Sois encourageant, mystique et précis. Utilise des émojis astrologiques.`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 800,
+      system: generateSystemPrompt({ zodiacSign: userSign }),
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    const textContent = response.content.find(block => block.type === 'text');
+    if (textContent && 'text' in textContent) {
+      return textContent.text;
+    }
+
+    return "L'analyse de compatibilité n'est pas disponible pour le moment. ✨";
+  } catch (error) {
+    console.error('Erreur lors de l\'analyse de compatibilité:', error);
+    throw new Error('Impossible de générer l\'analyse de compatibilité');
+  }
+}
+
+/**
+ * Génère un message d'accueil personnalisé basé sur le signe de l'utilisateur
+ */
+export async function generateWelcomeMessage(userContext: UserContext): Promise<string> {
+  const prompt = `Génère un message d'accueil chaleureux et personnalisé pour ${userContext.name || 'un utilisateur'}, qui est ${userContext.zodiacSign}.
+
+Le message doit :
+- Être court (2-3 phrases maximum)
+- Mentionner une qualité spécifique de leur signe
+- Les encourager à explorer l'app
+- Être mystique et engageant
+
+Utilise des émojis astrologiques. ✨`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 200,
+      system: generateSystemPrompt(userContext),
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    const textContent = response.content.find(block => block.type === 'text');
+    if (textContent && 'text' in textContent) {
+      return textContent.text;
+    }
+
+    return `Bienvenue sur XMOON, ${userContext.name || 'âme cosmique'} ! ✨ Les étoiles t'attendaient.`;
+  } catch (error) {
+    console.error('Erreur lors de la génération du message d\'accueil:', error);
+    return `Bienvenue sur XMOON ! 🌙 Prêt à découvrir ta destinée amoureuse ?`;
+  }
+}
