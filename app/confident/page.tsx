@@ -16,6 +16,7 @@ export default function ConfidentPage() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [conversationId, setConversationId] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,25 +37,78 @@ export default function ConfidentPage() {
       return;
     }
 
+    console.log('🔍 User auth ID:', user.id);
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", user.id)
       .single();
 
+    console.log('🔍 Profile récupéré:', profile);
+
     if (profile) {
       setUserProfile(profile);
       
-      const welcomeMsg = `Bonjour ${profile.full_name || profile.username} ! 🌙✨\n\nJe suis Confident, ton guide cosmique sur XMOON. En tant que ${profile.zodiac_sign}, tu possèdes des qualités uniques que je peux t'aider à comprendre et à utiliser dans tes relations.\n\nComment puis-je t'aider aujourd'hui ? 💫`;
-      
-      setMessages([
-        {
-          role: "assistant",
-          content: welcomeMsg,
-          timestamp: new Date(),
-        },
-      ]);
+      // 💾 CHARGER L'HISTORIQUE DES MESSAGES
+      await loadMessageHistory(user.id);
+    } else {
+      console.error('❌ Aucun profil trouvé pour user.id:', user.id);
     }
+  }
+
+  async function loadMessageHistory(userId: string) {
+    try {
+      // Charger les 50 derniers messages de l'utilisateur
+      const { data: history, error } = await supabase
+        .from('confident_messages')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+        .limit(50);
+
+      if (error) {
+        console.error('❌ Erreur chargement historique:', error);
+        return;
+      }
+
+      if (history && history.length > 0) {
+        // Convertir les messages en format Message[]
+        const loadedMessages: Message[] = history.map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+          timestamp: new Date(msg.created_at)
+        }));
+
+        setMessages(loadedMessages);
+        
+        // Récupérer le dernier conversationId
+        const lastMessage = history[history.length - 1];
+        setConversationId(lastMessage.conversation_id);
+        
+        console.log(`✅ ${history.length} messages chargés`);
+      } else {
+        // Pas d'historique, afficher message de bienvenue
+        showWelcomeMessage();
+      }
+    } catch (error) {
+      console.error('❌ Erreur critique chargement:', error);
+      showWelcomeMessage();
+    }
+  }
+
+  function showWelcomeMessage() {
+    if (!userProfile) return;
+    
+    const welcomeMsg = `Bonjour ${userProfile.full_name || userProfile.username} ! 🌙✨\n\nJe suis Confident, ton guide cosmique sur XMOON. En tant que ${userProfile.zodiac_sign}, tu possèdes des qualités uniques que je peux t'aider à comprendre et à utiliser dans tes relations.\n\nComment puis-je t'aider aujourd'hui ? 💫`;
+    
+    setMessages([
+      {
+        role: "assistant",
+        content: welcomeMsg,
+        timestamp: new Date(),
+      },
+    ]);
   }
 
   async function sendMessage() {
@@ -72,11 +126,13 @@ export default function ConfidentPage() {
 
     try {
       const userContext = {
+        userId: userProfile?.id,
+        conversationId: conversationId || `conv_${Date.now()}_${userProfile?.id}`,
         zodiacSign: userProfile?.zodiac_sign,
         name: userProfile?.full_name || userProfile?.username,
-        age: userProfile?.birthdate
+        age: userProfile?.age || (userProfile?.birthdate
           ? new Date().getFullYear() - new Date(userProfile.birthdate).getFullYear()
-          : undefined,
+          : undefined),
       };
 
       const response = await fetch("/api/confident", {
@@ -99,6 +155,11 @@ export default function ConfidentPage() {
 
       const data = await response.json();
 
+      // Mettre à jour le conversationId si nouveau
+      if (data.conversationId && !conversationId) {
+        setConversationId(data.conversationId);
+      }
+
       const assistantMessage: Message = {
         role: "assistant",
         content: data.message,
@@ -119,6 +180,13 @@ export default function ConfidentPage() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function startNewConversation() {
+    const newConvId = `conv_${Date.now()}_${userProfile?.id}`;
+    setConversationId(newConvId);
+    setMessages([]);
+    showWelcomeMessage();
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -143,16 +211,26 @@ export default function ConfidentPage() {
               <h1 className="text-xl font-bold text-white flex items-center gap-2">
                 🌙 Confident
               </h1>
-              <p className="text-sm text-white/60">Ton guide cosmique</p>
+              <p className="text-sm text-white/60">Ton confident cosmique</p>
             </div>
           </div>
           
-          {userProfile && (
-            <div className="text-right">
-              <p className="text-sm text-white/60">Tu es</p>
-              <p className="text-white font-semibold">{userProfile.zodiac_sign}</p>
-            </div>
-          )}
+          <div className="flex items-center gap-4">
+            {userProfile && (
+              <div className="text-right">
+                <p className="text-sm text-white/60">Tu es</p>
+                <p className="text-white font-semibold">{userProfile.zodiac_sign}</p>
+              </div>
+            )}
+            
+            <button
+              onClick={startNewConversation}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors"
+              title="Nouvelle conversation"
+            >
+              ✨ Nouveau
+            </button>
+          </div>
         </div>
       </div>
 
