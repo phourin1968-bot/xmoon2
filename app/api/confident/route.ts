@@ -52,6 +52,58 @@ async function saveMessage(
   }
 }
 
+/**
+ * Crée ou met à jour une conversation
+ */
+async function upsertConversation(
+  userId: string,
+  conversationId: string,
+  firstMessage?: string
+) {
+  try {
+    // Vérifier si la conversation existe déjà
+    const { data: existing } = await supabase
+      .from('confident_conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .single();
+    
+    if (existing) {
+      // Mettre à jour last_message_at
+      const { error } = await supabase
+        .from('confident_conversations')
+        .update({ last_message_at: new Date().toISOString() })
+        .eq('id', conversationId);
+      
+      if (error) {
+        console.error('❌ Erreur update conversation:', error);
+      }
+    } else {
+      // Créer nouvelle conversation avec titre généré
+      const title = firstMessage 
+        ? (firstMessage.substring(0, 50) + (firstMessage.length > 50 ? '...' : ''))
+        : 'Nouvelle conversation';
+      
+      const { error } = await supabase
+        .from('confident_conversations')
+        .insert({
+          id: conversationId,
+          user_id: userId,
+          title,
+          last_message_at: new Date().toISOString()
+        });
+      
+      if (error) {
+        console.error('❌ Erreur création conversation:', error);
+      } else {
+        console.log(`✅ Conversation créée: ${title}`);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Erreur critique conversation:', error);
+  }
+}
+
 function generateSystemPrompt(userContext?: UserContext): string {
   const basePrompt = `Tu es Confident, l'IA compagnon de XMOON, une application de rencontres basée sur l'astrologie.
 
@@ -102,6 +154,15 @@ export async function POST(request: NextRequest) {
     
     // 💾 SAUVEGARDER LE MESSAGE UTILISATEUR
     if (userContext?.userId) {
+      // Créer/mettre à jour la conversation
+      const isFirstMessage = messages.length === 1;
+      await upsertConversation(
+        userContext.userId,
+        conversationId,
+        isFirstMessage ? lastUserMessage.content : undefined
+      );
+      
+      // Sauvegarder le message
       await saveMessage(
         userContext.userId,
         conversationId,
@@ -116,7 +177,7 @@ export async function POST(request: NextRequest) {
       // Récupérer le profil COMPLET de l'utilisateur pour l'email d'alerte
       const { data: fullProfile, error: profileError } = await supabase
         .from('profiles')
-        .select('id, full_name, username, email, phone, city, age, birthdate, zodiac_sign, bio') 
+        .select('id, full_name, username, email, city, birthdate, zodiac_sign, bio')
         .eq('id', userContext?.userId)
         .single();
 

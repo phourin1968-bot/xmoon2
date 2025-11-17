@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter, useParams } from "next/navigation";
+import { Heart, X, Star } from "lucide-react";
 
 interface ProfileData {
   id: string;
@@ -169,8 +170,36 @@ export default function ProfileDetailPage() {
           {/* Gradient overlay en bas */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
+          {/* Boutons d'action en overlay sur la photo */}
+          <div className="absolute bottom-6 left-0 right-0 px-6">
+            <div className="flex justify-center gap-6">
+              <button
+                onClick={() => router.push("/discover")}
+                className="w-16 h-16 bg-red-500/30 hover:bg-red-500/40 backdrop-blur-md rounded-full flex items-center justify-center border-2 border-red-400/70 transition-all hover:scale-110 shadow-xl"
+              >
+                <X className="w-8 h-8 text-red-400" />
+              </button>
+
+              <button
+                onClick={() => handleAction("superlike")}
+                disabled={actionLoading}
+                className="w-16 h-16 bg-blue-500/30 hover:bg-blue-500/40 backdrop-blur-md rounded-full flex items-center justify-center border-2 border-blue-400/70 transition-all hover:scale-110 shadow-xl disabled:opacity-50"
+              >
+                <Star className="w-7 h-7 text-blue-400" />
+              </button>
+
+              <button
+                onClick={() => handleAction("like")}
+                disabled={actionLoading}
+                className="w-16 h-16 bg-gradient-to-r from-pink-500 to-red-500 rounded-full flex items-center justify-center shadow-2xl shadow-pink-500/60 transition-all hover:scale-110 border-2 border-white/30 disabled:opacity-50"
+              >
+                <Heart className="w-8 h-8 text-white fill-white" />
+              </button>
+            </div>
+          </div>
+
           {/* Infos sur la photo */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+          <div className="absolute bottom-24 left-0 right-0 p-6 text-white">
             <h1 className="text-4xl font-bold mb-2">
               {profile.username || profile.full_name}
               {age && <span className="text-3xl font-normal">, {age}</span>}
@@ -229,41 +258,6 @@ export default function ProfileDetailPage() {
               </div>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Boutons d'action fixes en bas */}
-      <div className="fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-md border-t border-violet-700/30 p-4">
-        <div className="max-w-2xl mx-auto flex justify-center gap-4">
-          {/* Wave */}
-          <button
-            onClick={() => handleAction("wave")}
-            disabled={actionLoading}
-            className="w-16 h-16 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center text-3xl transition-all hover:scale-110 disabled:opacity-50"
-            title="Envoyer un coucou"
-          >
-            👋
-          </button>
-
-          {/* Like */}
-          <button
-            onClick={() => handleAction("like")}
-            disabled={actionLoading}
-            className="w-20 h-20 bg-gradient-to-br from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 rounded-full flex items-center justify-center text-4xl transition-all hover:scale-110 shadow-lg shadow-pink-500/50 disabled:opacity-50"
-            title="J'aime !"
-          >
-            ❤️
-          </button>
-
-          {/* Super Like */}
-          <button
-            onClick={() => handleAction("superlike")}
-            disabled={actionLoading}
-            className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-full flex items-center justify-center text-3xl transition-all hover:scale-110 shadow-lg shadow-blue-500/50 disabled:opacity-50"
-            title="Super Like !"
-          >
-            ⭐
-          </button>
         </div>
       </div>
     </main>

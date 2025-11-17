@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 const navItems = [
   { href: "/confident", icon: "🤖", label: "IA" },
-  { href: "/astrology", icon: "🌙✨", label: "Astro" },
+  { href: "/astro", icon: "🌙✨", label: "Astro" },
   { href: "/matches", icon: "❤️", label: "Matches" },
   { href: "/chat", icon: "💬", label: "Chat" },
 ];
