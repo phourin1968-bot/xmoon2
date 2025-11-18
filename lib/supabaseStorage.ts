@@ -64,7 +64,7 @@ export async function uploadPhotoToStorage(
 }
 
 /**
- * Uploader plusieurs photos et sauvegarder dans la table avatars
+ * Uploader plusieurs photos et sauvegarder dans la table user_photos
  * @param files - Array de fichiers
  * @param userId - ID de l'utilisateur
  * @param isPrimaryIndex - Index de la photo principale (optionnel)
@@ -101,7 +101,7 @@ export async function uploadMultiplePhotos(
       return { success: false, error: "Aucune photo n'a pu être uploadée" };
     }
 
-    // Sauvegarder dans la table avatars
+    // Sauvegarder dans la table user_photos (✅ CORRIGÉ)
     const photosToInsert = uploadResults.map((photo, index) => ({
       user_id: userId,
       photo_url: photo.url,
@@ -110,7 +110,7 @@ export async function uploadMultiplePhotos(
     }));
 
     const { error: insertError } = await supabase
-      .from("avatars")
+      .from("user_photos") // ✅ CORRIGÉ : user_photos au lieu de avatars
       .insert(photosToInsert);
 
     if (insertError) {
@@ -134,7 +134,7 @@ export async function uploadMultiplePhotos(
  */
 export async function getUserPhotos(userId: string) {
   const { data, error } = await supabase
-    .from("avatars")
+    .from("user_photos") // ✅ CORRIGÉ : user_photos au lieu de avatars
     .select("*")
     .eq("user_id", userId)
     .order("photo_order", { ascending: true });
@@ -160,9 +160,9 @@ export async function deletePhoto(photoId: string, photoUrl: string) {
       await supabase.storage.from("avatars").remove([filePath]);
     }
 
-    // Supprimer de la table
+    // Supprimer de la table user_photos (✅ CORRIGÉ)
     const { error } = await supabase
-      .from("avatars")
+      .from("user_photos") // ✅ CORRIGÉ : user_photos au lieu de avatars
       .delete()
       .eq("id", photoId);
 

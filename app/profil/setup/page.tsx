@@ -4,6 +4,7 @@ import { FormEvent, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { uploadMultiplePhotos, getUserPhotos, deletePhoto } from "@/lib/supabaseStorage";
+import { smartCompress } from "@/lib/imageCompression";
 import { Camera, X, AlertCircle, CheckCircle } from "lucide-react";
 
 interface UserPhoto {
@@ -57,7 +58,7 @@ export default function ProfileSetupPage() {
         return;
       }
 
-      console.log("User from auth:", user); // Debug
+      console.log("User from auth:", user);
       setCurrentUser(user);
 
       // Récupérer le profil existant
@@ -77,7 +78,7 @@ export default function ProfileSetupPage() {
         setZodiacSign(profile.zodiac_sign || "");
       }
 
-      // Récupérer les photos (FIX: vérifier que user.id existe)
+      // Récupérer les photos
       if (user.id) {
         const photos = await getUserPhotos(user.id);
         setUploadedPhotos(photos);
@@ -129,26 +130,44 @@ export default function ProfileSetupPage() {
     }
   }
 
-  // Gestion des fichiers sélectionnés
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  // Gestion des fichiers sélectionnés avec compression automatique
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
     
     // Limiter à 6 photos max
     if (files.length + uploadedPhotos.length > 6) {
       setErrorMsg("Maximum 6 photos");
+      setTimeout(() => setErrorMsg(""), 3000);
       return;
     }
 
-    setSelectedFiles(prev => [...prev, ...files]);
-    
-    // Créer les previews
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setPreviewUrls(prev => [...prev, event.target?.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+    // Afficher un message de compression en cours
+    setSuccessMsg("Compression des images en cours...");
+
+    try {
+      // Compresser toutes les images
+      const compressedFiles = await Promise.all(
+        files.map(file => smartCompress(file))
+      );
+
+      setSelectedFiles(prev => [...prev, ...compressedFiles]);
+      
+      // Créer les previews
+      compressedFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setPreviewUrls(prev => [...prev, event.target?.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      setSuccessMsg(`${compressedFiles.length} image(s) compressée(s) et prête(s) ✓`);
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch (error) {
+      console.error("Erreur compression:", error);
+      setErrorMsg("Erreur lors de la compression des images");
+      setTimeout(() => setErrorMsg(""), 3000);
+    }
   }
 
   // Supprimer une preview
@@ -212,32 +231,35 @@ export default function ProfileSetupPage() {
   // Sauvegarder le profil
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    
-    if (!fullName || !username || !birthdate) {
-      setErrorMsg("Remplis au moins : nom, pseudo et date de naissance");
-      return;
-    }
+    setErrorMsg("");
+    setSuccessMsg("");
+    setIsSaving(true);
 
     if (!currentUser?.id) {
       setErrorMsg("Utilisateur non identifié");
+      setIsSaving(false);
       return;
     }
 
-    setIsSaving(true);
-    setErrorMsg("");
-    setSuccessMsg("");
+    // Validation
+    if (!fullName.trim() || !username.trim() || !birthdate) {
+      setErrorMsg("Prénom, username et date de naissance sont obligatoires");
+      setIsSaving(false);
+      return;
+    }
 
     try {
+      // Mettre à jour le profil
       const { error } = await supabase
         .from("profiles")
         .update({
           full_name: fullName,
-          username: username,
-          birthdate: birthdate,
-          gender: gender || null,
-          bio: bio || null,
-          city: city || null,
-          zodiac_sign: zodiacSign || null,
+          username,
+          birthdate,
+          zodiac_sign: zodiacSign,
+          gender,
+          bio,
+          city,
           updated_at: new Date().toISOString(),
         })
         .eq("id", currentUser.id);
@@ -248,14 +270,14 @@ export default function ProfileSetupPage() {
         return;
       }
 
-      setSuccessMsg("Profil sauvegardé ! Redirection...");
+      setSuccessMsg("Profil configuré avec succès ! 🎉");
       
-      // Attendre 1s puis rediriger
+      // Redirection après 1 seconde
       setTimeout(() => {
         router.push("/home");
       }, 1000);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Erreur lors de la sauvegarde");
+    } catch (err) {
+      setErrorMsg("Erreur lors de la sauvegarde");
       setIsSaving(false);
     }
   }
@@ -263,22 +285,30 @@ export default function ProfileSetupPage() {
   if (isLoading) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-[#050816] via-[#16052a] to-[#3b0b6b] flex items-center justify-center">
-        <p className="text-slate-200">Chargement...</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-400 mx-auto mb-4"></div>
+          <p className="text-slate-300">Chargement...</p>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[#050816] via-[#16052a] to-[#3b0b6b] py-8 px-4">
+    <main className="min-h-screen bg-gradient-to-br from-[#050816] via-[#16052a] to-[#3b0b6b] py-8 px-4 pb-32">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-50 mb-2">Crée ton profil ✨</h1>
-          <p className="text-slate-400">Complète tes infos et ajoute tes photos</p>
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-4xl">✨</span>
+            <h1 className="text-3xl font-bold text-slate-50">Configure ton profil</h1>
+          </div>
+          <p className="text-slate-400 text-sm">
+            Complète tes informations pour commencer à matcher
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Messages */}
+          {/* Messages de feedback */}
           {errorMsg && (
             <div className="p-4 bg-red-900/30 border border-red-700/40 rounded-lg flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
@@ -426,7 +456,7 @@ export default function ProfileSetupPage() {
                   <div className="border-2 border-dashed border-violet-600/40 rounded-lg p-8 text-center cursor-pointer hover:border-violet-500 hover:bg-violet-600/5 transition">
                     <Camera className="w-8 h-8 text-violet-400 mx-auto mb-2" />
                     <p className="text-slate-400 text-sm">Clique ou drag des images ici</p>
-                    <p className="text-slate-500 text-xs mt-1">JPG, PNG (max 5MB par photo)</p>
+                    <p className="text-slate-500 text-xs mt-1">JPG, PNG - Compression automatique activée ✨</p>
                   </div>
                   <input
                     type="file"

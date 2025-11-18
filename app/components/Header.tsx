@@ -8,12 +8,14 @@ export default function Header() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null); // ✅ Ajout de userId
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Vérifier si l'utilisateur est connecté
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
+      setUserId(session?.user?.id || null); // ✅ Récupérer l'ID
       setLoading(false);
     });
 
@@ -22,6 +24,7 @@ export default function Header() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
+      setUserId(session?.user?.id || null); // ✅ Récupérer l'ID
       setLoading(false);
     });
 
@@ -132,12 +135,27 @@ export default function Header() {
           <button
             onClick={() => {
               setMenuOpen(false);
-              router.push("/profil");
+              // ✅ Redirection avec l'ID de l'utilisateur
+              if (userId) {
+                router.push(`/profil/${userId}`);
+              }
             }}
             className="w-full flex items-center gap-3 px-4 py-3 text-slate-200 hover:bg-violet-600/20 rounded-lg transition-colors"
           >
             <span className="text-xl">👤</span>
             <span className="font-medium">Mon Profil</span>
+          </button>
+
+          {/* Modifier mon profil */}
+          <button
+            onClick={() => {
+              setMenuOpen(false);
+              router.push("/profil/edit");
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 text-slate-200 hover:bg-violet-600/20 rounded-lg transition-colors"
+          >
+            <span className="text-xl">✏️</span>
+            <span className="font-medium">Modifier mon profil</span>
           </button>
 
           {/* Paramètres */}
