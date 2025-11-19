@@ -19,10 +19,9 @@ export default function VerifyEmailPage() {
       if (user) {
         setEmail(user.email || "");
         
-        // Si l'email est déjà vérifié, rediriger
         if (user.email_confirmed_at) {
-          router.push("/profil");
-        }
+        router.push("/profil/setup"); // ✅
+      }
       } else {
         router.push("/auth/login");
       }
@@ -64,8 +63,8 @@ export default function VerifyEmailPage() {
     if (data.user?.email_confirmed_at) {
       setMessage("✅ Email vérifié ! Redirection...");
       setTimeout(() => {
-        router.push("/profil");
-      }, 1500);
+      router.push("/profil/setup"); // ✅
+    }, 1500);
     } else {
       setMessage("⚠️ Email pas encore vérifié. Vérifie ta boîte mail !");
     }
