@@ -15,7 +15,7 @@ export default function LoginPage() {
     async function checkUser() {
       const { data } = await supabase.auth.getUser();
       if (data.user) {
-        router.push("/profil");
+        router.push("/home");
         return;
       }
       setCheckingSession(false);
@@ -57,7 +57,7 @@ export default function LoginPage() {
 
       // Si le profil est incomplet → /profil pour finir l'onboarding
       if (!profile || !profile.full_name || !profile.username || !profile.birthdate) {
-        router.push("/profil");
+        router.push("/profil/setup");
       } else {
         // Profil complet → /home
         router.push("/home");

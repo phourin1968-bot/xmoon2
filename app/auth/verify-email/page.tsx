@@ -11,22 +11,35 @@ export default function VerifyEmailPage() {
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
-    async function checkEmailVerification() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        setEmail(user.email || "");
-        
-        if (user.email_confirmed_at) {
-        router.push("/profil/setup"); // ✅
-      }
-      } else {
+    async function checkAuth() {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
         router.push("/auth/login");
+        return;
+      }
+      
+      setEmail(user.email || "");
+      
+      // Vérifier si l'email est déjà confirmé
+      if (user.email_confirmed_at) {
+        router.push("/profil/setup"); // ✅ CORRIGÉ : /app/profil/setup
+        return;
       }
     }
-    checkEmailVerification();
+    
+    checkAuth();
+    
+    // Vérifier périodiquement (toutes les 5 secondes)
+    const interval = setInterval(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email_confirmed_at) {
+        clearInterval(interval);
+        router.push("profil/setup"); // ✅ CORRIGÉ
+      }
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, [router]);
 
   async function handleResendEmail() {
@@ -51,22 +64,26 @@ export default function VerifyEmailPage() {
     setChecking(true);
     setMessage("");
 
-    // Forcer le refresh de la session
-    const { data, error } = await supabase.auth.refreshSession();
+    try {
+      // Rafraîchir la session pour obtenir les dernières données
+      const { data: { session }, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        setMessage("❌ Erreur : " + error.message);
+        setChecking(false);
+        return;
+      }
 
-    if (error) {
-      setMessage("❌ Erreur : " + error.message);
-      setChecking(false);
-      return;
-    }
-
-    if (data.user?.email_confirmed_at) {
-      setMessage("✅ Email vérifié ! Redirection...");
-      setTimeout(() => {
-      router.push("/profil/setup"); // ✅
-    }, 1500);
-    } else {
-      setMessage("⚠️ Email pas encore vérifié. Vérifie ta boîte mail !");
+      if (session?.user?.email_confirmed_at) {
+        setMessage("✅ Email vérifié ! Redirection...");
+        setTimeout(() => {
+          router.push("/profil/setup"); // ✅ CORRIGÉ
+        }, 1500);
+      } else {
+        setMessage("⚠️ Email pas encore vérifié. Vérifie ta boîte mail !");
+      }
+    } catch (err) {
+      setMessage("❌ Erreur lors de la vérification");
     }
 
     setChecking(false);

@@ -4,10 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 const navItems = [
-  { href: "/confident", icon: "🤖", label: "IA" },
-  { href: "/astro", icon: "🌙✨", label: "Astro" },
-  { href: "/matches", icon: "❤️", label: "Matches" },
-  { href: "/chat", icon: "💬", label: "Chat" },
+  { href: '/home', icon: '🏠', label: 'Home' },
+  { href: '/confident', icon: '🎭', label: 'IA' },
+  { href: '/astro', icon: '🔮', label: 'Astro' },
+  { href: '/matches', icon: '❤️', label: 'Matches' },
+  { href: '/chat', icon: '💬', label: 'Chat' },
 ];
 
 export default function BottomNav() {

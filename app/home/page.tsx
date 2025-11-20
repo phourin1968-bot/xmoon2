@@ -132,11 +132,11 @@ export default function HomePage() {
               Qui va te plaire ? 💫
             </h2>
             <button
-              onClick={() => router.push(`/profile/${p.id}`)}
-              className="text-violet-400 hover:text-violet-300 text-sm font-medium"
-            >
-              Voir plus →
-            </button>
+          onClick={() => router.push('/browse')}
+          className="text-violet-400 hover:text-violet-300 text-sm font-medium"
+          >
+          Voir plus →
+        </button>
           </div>
 
           {suggestedProfiles.length > 0 ? (

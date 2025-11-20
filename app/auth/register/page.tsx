@@ -33,6 +33,7 @@ export default function RegisterPage() {
           data: {
             display_name: displayName,
           },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
@@ -42,16 +43,27 @@ export default function RegisterPage() {
         return;
       }
 
-      // Inscription réussie !
-      setRegistrationSuccess(true);
+      // Vérifie si un compte existe déjà avec cet email
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        setErrorMsg("Un compte avec cet email existe déjà");
+        setIsLoading(false);
+        return;
+      }
+
+      // Si l'email de confirmation a été envoyé
+      if (data.user?.confirmation_sent_at) {
+        setRegistrationSuccess(true);
+      }
+      
       setIsLoading(false);
+      
     } catch (err) {
       setErrorMsg("Une erreur est survenue");
       setIsLoading(false);
     }
   }
 
-  // Si l'inscription a réussi, afficher le message de confirmation
+  // Si l'inscription a réussi et l'email de vérification a été envoyé
   if (registrationSuccess) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-[#050816] via-[#16052a] to-[#3b0b6b] flex items-center justify-center px-4">
