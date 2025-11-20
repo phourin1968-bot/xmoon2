@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import SwipeCard from "@/app/components/SwipeCard";
 import Header from "@/app/components/Header";
 import { User } from "@supabase/supabase-js";
+import { Heart, X, Star } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -33,7 +34,7 @@ export default function DiscoverPage() {
     }
   };
 
-  // 🔥 Récupérer les profils depuis Supabase (exclure les profils déjà likés/dislikés)
+  // 🔥 Récupérer les profils depuis Supabase (exclure les profils déjà likés)
   const fetchProfiles = async (userId: string) => {
     try {
       // 1. Récupérer les IDs des profils déjà vus
@@ -48,7 +49,7 @@ export default function DiscoverPage() {
       let query = supabase
         .from("profiles")
         .select("id, username, age, bio, city, zodiac_sign")
-        .neq("id", userId) // Exclure son propre profil
+        .neq("id", userId)
         .limit(20);
 
       // Si on a des profils déjà vus, les exclure
@@ -71,8 +72,8 @@ export default function DiscoverPage() {
     }
   };
 
-  // 💾 Enregistrer le like/dislike dans la base
-  const saveLike = async (likedUserId: string, isLike: boolean) => {
+  // 💾 Enregistrer le like dans la base
+  const saveLike = async (likedUserId: string, isLike: boolean, isSuperLike: boolean = false) => {
     if (!currentUser) return;
 
     try {
@@ -81,15 +82,15 @@ export default function DiscoverPage() {
         .insert({
           user_id: currentUser.id,
           liked_user_id: likedUserId,
-          is_like: isLike
+          is_like: isLike,
+          is_super_like: isSuperLike
         });
 
       if (error) {
         console.error("❌ Erreur enregistrement like:", error);
       } else {
-        console.log(`✅ ${isLike ? "Like" : "Dislike"} enregistré`);
+        console.log(`✅ ${isSuperLike ? "Super Like" : isLike ? "Like" : "Pass"} enregistré`);
         
-        // Si c'est un like, vérifier s'il y a match
         if (isLike) {
           await checkForMatch(likedUserId);
         }
@@ -106,7 +107,6 @@ export default function DiscoverPage() {
     try {
       console.log(`🔍 Vérification match entre ${currentUser.id} et ${likedUserId}`);
       
-      // Vérifier si l'autre personne a aussi liké
       const { data, error } = await supabase
         .from("likes")
         .select("*")
@@ -122,7 +122,6 @@ export default function DiscoverPage() {
 
       if (data) {
         console.log("🎉 MATCH DÉTECTÉ !");
-        // Créer le match dans la table matches
         await createMatch(likedUserId);
       } else {
         console.log("Pas de match (normal)");
@@ -137,7 +136,6 @@ export default function DiscoverPage() {
     if (!currentUser) return;
 
     try {
-      // Vérifier si le match existe déjà
       const { data: existingMatch } = await supabase
         .from("matches")
         .select("*")
@@ -149,7 +147,6 @@ export default function DiscoverPage() {
         return;
       }
 
-      // Créer le nouveau match
       const { error } = await supabase
         .from("matches")
         .insert({
@@ -162,8 +159,7 @@ export default function DiscoverPage() {
         console.error("❌ Erreur création match:", error);
       } else {
         console.log("✅ Match créé dans la base !");
-        // TODO: Afficher animation de match (Étape 3)
-        alert("🎉 C'est un match !"); // Temporaire
+        alert("🎉 C'est un match !");
       }
     } catch (err) {
       console.error("❌ Erreur:", err);
@@ -171,18 +167,19 @@ export default function DiscoverPage() {
   };
 
   // 👆 Gestion du swipe
-  const handleSwipe = async (direction: "left" | "right") => {
+  const handleSwipe = async (direction: "left" | "right" | "superlike") => {
     const currentProfile = profiles[currentIndex];
-    console.log(`Swipe ${direction} sur ${currentProfile?.username}`);
     
-    // Enregistrer le like/dislike
-    await saveLike(currentProfile.id, direction === "right");
+    if (direction === "superlike") {
+      await saveLike(currentProfile.id, true, true);
+    } else if (direction === "right") {
+      await saveLike(currentProfile.id, true, false);
+    }
+    // Si direction === "left", on ne fait RIEN, juste passer au suivant
     
     // Passer au profil suivant
     if (currentIndex < profiles.length - 1) {
       setCurrentIndex(currentIndex + 1);
-    } else {
-      console.log("🎉 Plus de profils à afficher !");
     }
   };
 
@@ -246,22 +243,30 @@ export default function DiscoverPage() {
             onSwipe={handleSwipe}
           />
 
-          {/* 🔘 Boutons de contrôle */}
+          {/* 🔘 Boutons de contrôle - 3 boutons */}
           <div className="flex justify-center gap-6 mt-8">
             <button
               onClick={() => handleSwipe("left")}
-              className="w-16 h-16 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110"
-              aria-label="Dislike"
+              className="w-16 h-16 bg-gray-500/30 hover:bg-gray-500/40 backdrop-blur-md rounded-full flex items-center justify-center border-2 border-gray-400/70 transition-all hover:scale-110 shadow-xl"
+              aria-label="Passer"
             >
-              <span className="text-white text-3xl">✖</span>
+              <X className="w-8 h-8 text-gray-400" />
+            </button>
+
+            <button
+              onClick={() => handleSwipe("superlike")}
+              className="w-16 h-16 bg-blue-500/30 hover:bg-blue-500/40 backdrop-blur-md rounded-full flex items-center justify-center border-2 border-blue-400/70 transition-all hover:scale-110 shadow-xl"
+              aria-label="Super Like"
+            >
+              <Star className="w-7 h-7 text-blue-400" />
             </button>
             
             <button
               onClick={() => handleSwipe("right")}
-              className="w-16 h-16 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110"
+              className="w-16 h-16 bg-gradient-to-r from-pink-500 to-red-500 rounded-full flex items-center justify-center shadow-2xl shadow-pink-500/60 transition-all hover:scale-110 border-2 border-white/30"
               aria-label="Like"
             >
-              <span className="text-white text-3xl">♥</span>
+              <Heart className="w-8 h-8 text-white fill-white" />
             </button>
           </div>
 
