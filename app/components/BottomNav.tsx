@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 const navItems = [
-  { href: '/home', icon: '🏠', label: 'Home' },
+  { href: '/discover', icon: '🔥', label: 'Discover' },
   { href: '/confident', icon: '🎭', label: 'IA' },
   { href: '/astro', icon: '🔮', label: 'Astro' },
   { href: '/matches', icon: '❤️', label: 'Matches' },
@@ -65,7 +65,7 @@ export default function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-md border-t border-violet-700/30 z-40">
-      <div className="max-w-md mx-auto px-4 py-3 flex justify-center items-center gap-4">
+      <div className="max-w-md mx-auto px-2 py-3 flex justify-around items-center">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -73,7 +73,7 @@ export default function BottomNav() {
               key={item.href}
               type="button"
               onClick={() => handleNav(item.href)}
-              className={`flex flex-col items-center gap-1 px-6 py-2 rounded-lg transition-all ${
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${
                 isActive
                   ? "text-violet-400 bg-violet-600/20"
                   : "text-slate-400 hover:text-slate-200"

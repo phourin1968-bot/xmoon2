@@ -8,14 +8,14 @@ export default function Header() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null); // ✅ Ajout de userId
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Vérifier si l'utilisateur est connecté
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
-      setUserId(session?.user?.id || null); // ✅ Récupérer l'ID
+      setUserId(session?.user?.id || null);
       setLoading(false);
     });
 
@@ -24,7 +24,7 @@ export default function Header() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
-      setUserId(session?.user?.id || null); // ✅ Récupérer l'ID
+      setUserId(session?.user?.id || null);
       setLoading(false);
     });
 
@@ -63,11 +63,14 @@ export default function Header() {
     <>
       <header className="fixed top-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-violet-700/30">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          {/* Logo */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Logo cliquable → Home */}
+          <button
+            onClick={() => router.push("/home")}
+            className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity"
+          >
             <span className="text-2xl">🌙</span>
             <h1 className="text-xl font-bold text-slate-50">Xmoon</h1>
-          </div>
+          </button>
 
           {/* Barre de recherche */}
           <div className="flex-1 max-w-md">
@@ -135,7 +138,6 @@ export default function Header() {
           <button
             onClick={() => {
               setMenuOpen(false);
-              // ✅ Redirection avec l'ID de l'utilisateur
               if (userId) {
                 router.push(`/profil/${userId}`);
               }
