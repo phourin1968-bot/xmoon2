@@ -3,6 +3,7 @@ import "./styles/styles-unifie.css";
 import Header from "./components/Header";
 import type { ReactNode } from "react";
 import BottomNav from "./components/BottomNav";
+import NotificationHandler from './components/NotificationHandler';
 
 export const metadata = {
   title: "Xmoon",
@@ -17,6 +18,9 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body>
+        {/* Gestionnaire de notifications */}
+        <NotificationHandler />
+        
         {/* Header avec recherche et menu */}
         <Header />
         
