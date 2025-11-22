@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import SwipeCard from "@/app/components/SwipeCard";
 import Header from "@/app/components/Header";
+import MatchModal from "@/app/components/MatchModal";
 import { User } from "@supabase/supabase-js";
 import { Heart, X, Star } from "lucide-react";
 
@@ -14,6 +15,7 @@ interface Profile {
   bio?: string;
   city?: string;
   zodiac_sign?: string;
+  avatar_url?: string;
 }
 
 export default function DiscoverPage() {
@@ -21,6 +23,11 @@ export default function DiscoverPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  
+  // États pour le MatchModal
+  const [showMatchModal, setShowMatchModal] = useState(false);
+  const [matchedUser, setMatchedUser] = useState<Profile | null>(null);
+  const [matchId, setMatchId] = useState<string>("");
 
   useEffect(() => {
     loadCurrentUser();
@@ -34,27 +41,28 @@ export default function DiscoverPage() {
     }
   };
 
-  // 🔥 Récupérer les profils depuis Supabase (exclure les profils déjà likés)
+  // 🔥 Récupérer les profils (EXCLURE SEULEMENT LES VRAIS LIKES, pas les NOPE)
   const fetchProfiles = async (userId: string) => {
     try {
-      // 1. Récupérer les IDs des profils déjà vus
-      const { data: alreadySeenData } = await supabase
+      // 1. Récupérer les IDs des profils VRAIMENT LIKÉS (is_like = true)
+      const { data: alreadyLikedData } = await supabase
         .from("likes")
         .select("liked_user_id")
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .eq("is_like", true); // ← CHANGEMENT ICI : on ignore les NOPE
 
-      const seenIds = alreadySeenData?.map(like => like.liked_user_id) || [];
+      const likedIds = alreadyLikedData?.map(like => like.liked_user_id) || [];
 
-      // 2. Récupérer les profils non vus (et pas soi-même)
+      // 2. Récupérer les profils non likés (les NOPE peuvent revenir !)
       let query = supabase
         .from("profiles")
-        .select("id, username, age, bio, city, zodiac_sign")
+        .select("id, username, age, bio, city, zodiac_sign, avatar_url")
         .neq("id", userId)
         .limit(20);
 
-      // Si on a des profils déjà vus, les exclure
-      if (seenIds.length > 0) {
-        query = query.not("id", "in", `(${seenIds.join(",")})`);
+      // Exclure seulement les profils vraiment likés
+      if (likedIds.length > 0) {
+        query = query.not("id", "in", `(${likedIds.join(",")})`);
       }
 
       const { data, error } = await query;
@@ -112,15 +120,14 @@ export default function DiscoverPage() {
         .select("*")
         .eq("user_id", likedUserId)
         .eq("liked_user_id", currentUser.id)
-        .eq("is_like", true)
-        .maybeSingle();
+        .eq("is_like", true);
 
       if (error) {
         console.error("❌ Erreur vérification match:", error);
         return;
       }
 
-      if (data) {
+      if (data && data.length > 0) {
         console.log("🎉 MATCH DÉTECTÉ !");
         await createMatch(likedUserId);
       } else {
@@ -132,39 +139,60 @@ export default function DiscoverPage() {
   };
 
   // 💕 Créer un match dans la base
-const createMatch = async (matchedUserId: string) => {
-  if (!currentUser) return;
+  const createMatch = async (matchedUserId: string) => {
+    if (!currentUser) return;
 
-  try {
-    const { data: existingMatch } = await supabase
-      .from("matches")
-      .select("*")
-      .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${matchedUserId}),and(user1_id.eq.${matchedUserId},user2_id.eq.${currentUser.id})`)
-      .maybeSingle();
+    try {
+      const { data: existingMatch } = await supabase
+        .from("matches")
+        .select("*")
+        .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${matchedUserId}),and(user1_id.eq.${matchedUserId},user2_id.eq.${currentUser.id})`)
+        .maybeSingle();
 
-    if (existingMatch) {
-      console.log("Match déjà existant");
-      return;
+      if (existingMatch) {
+        console.log("Match déjà existant");
+        setMatchId(existingMatch.id);
+        showMatchModalForUser(matchedUserId);
+        return;
+      }
+
+      const { data: newMatch, error } = await supabase
+        .from("matches")
+        .insert({
+          user1_id: currentUser.id,
+          user2_id: matchedUserId,
+          status: "pending"
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("❌ Erreur création match:", error);
+      } else {
+        console.log("✅ Match créé dans la base !", newMatch);
+        setMatchId(newMatch.id);
+        showMatchModalForUser(matchedUserId);
+      }
+    } catch (err) {
+      console.error("❌ Erreur:", err);
     }
+  };
 
-    const { error } = await supabase
-      .from("matches")
-      .insert({
-        user1_id: currentUser.id,
-        user2_id: matchedUserId,
-        status: "pending"
-      });
+  // 🎉 Afficher le MatchModal
+  const showMatchModalForUser = async (userId: string) => {
+    // Récupérer les infos du profil matché
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, username, avatar_url, zodiac_sign")
+      .eq("id", userId)
+      .single();
 
-    if (error) {
-      console.error("❌ Erreur création match:", error);
-    } else {
-      console.log("✅ Match créé dans la base !");
-      alert("🎉 C'est un match !");
+    if (profile) {
+      setMatchedUser(profile);
+      setShowMatchModal(true);
     }
-  } catch (err) {
-    console.error("❌ Erreur:", err);
-  }
-};
+  };
+
   // 👆 Gestion du swipe
   const handleSwipe = async (direction: "left" | "right" | "superlike") => {
     const currentProfile = profiles[currentIndex];
@@ -174,7 +202,10 @@ const createMatch = async (matchedUserId: string) => {
     } else if (direction === "right") {
       await saveLike(currentProfile.id, true, false);
     }
-    // Si direction === "left", on ne fait RIEN, juste passer au suivant
+    // Si direction === "left", on enregistre un NOPE mais il reviendra !
+    else if (direction === "left") {
+      await saveLike(currentProfile.id, false, false);
+    }
     
     // Passer au profil suivant
     if (currentIndex < profiles.length - 1) {
@@ -275,6 +306,16 @@ const createMatch = async (matchedUserId: string) => {
           </p>
         </div>
       </div>
+
+      {/* MatchModal */}
+      {matchedUser && (
+        <MatchModal
+          isOpen={showMatchModal}
+          onClose={() => setShowMatchModal(false)}
+          matchedUser={matchedUser}
+          matchId={matchId}
+        />
+      )}
     </div>
   );
 }
