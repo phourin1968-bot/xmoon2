@@ -132,40 +132,39 @@ export default function DiscoverPage() {
   };
 
   // 💕 Créer un match dans la base
-  const createMatch = async (matchedUserId: string) => {
-    if (!currentUser) return;
+const createMatch = async (matchedUserId: string) => {
+  if (!currentUser) return;
 
-    try {
-      const { data: existingMatch } = await supabase
-        .from("matches")
-        .select("*")
-        .or(`and(user1.eq.${currentUser.id},user2.eq.${matchedUserId}),and(user1.eq.${matchedUserId},user2.eq.${currentUser.id})`)
-        .maybeSingle();
+  try {
+    const { data: existingMatch } = await supabase
+      .from("matches")
+      .select("*")
+      .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${matchedUserId}),and(user1_id.eq.${matchedUserId},user2_id.eq.${currentUser.id})`)
+      .maybeSingle();
 
-      if (existingMatch) {
-        console.log("Match déjà existant");
-        return;
-      }
-
-      const { error } = await supabase
-        .from("matches")
-        .insert({
-          user1: currentUser.id,
-          user2: matchedUserId,
-          status: "pending"
-        });
-
-      if (error) {
-        console.error("❌ Erreur création match:", error);
-      } else {
-        console.log("✅ Match créé dans la base !");
-        alert("🎉 C'est un match !");
-      }
-    } catch (err) {
-      console.error("❌ Erreur:", err);
+    if (existingMatch) {
+      console.log("Match déjà existant");
+      return;
     }
-  };
 
+    const { error } = await supabase
+      .from("matches")
+      .insert({
+        user1_id: currentUser.id,
+        user2_id: matchedUserId,
+        status: "pending"
+      });
+
+    if (error) {
+      console.error("❌ Erreur création match:", error);
+    } else {
+      console.log("✅ Match créé dans la base !");
+      alert("🎉 C'est un match !");
+    }
+  } catch (err) {
+    console.error("❌ Erreur:", err);
+  }
+};
   // 👆 Gestion du swipe
   const handleSwipe = async (direction: "left" | "right" | "superlike") => {
     const currentProfile = profiles[currentIndex];

@@ -1,13 +1,33 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function Home() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true); // Pour afficher un loader pendant la vérification
+
+  // Vérifier si l'utilisateur est déjà connecté
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // Si connecté, rediriger vers discover
+        router.push('/discover');
+      } else {
+        // Sinon, afficher le formulaire
+        setChecking(false);
+      }
+    };
+
+    checkSession();
+  }, [router]);
 
   const handleSignUp = async (e: FormEvent) => {
     e.preventDefault();
@@ -46,8 +66,21 @@ export default function Home() {
       setMessage("❌ Erreur connexion : " + error.message);
     } else {
       setMessage("✅ Connexion réussie !");
+      // Redirection après connexion
+      setTimeout(() => {
+        router.push('/discover');
+      }, 500);
     }
   };
+
+  // Afficher un loader pendant la vérification
+  if (checking) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-[#050816] via-[#16052a] to-[#3b0b6b] flex items-center justify-center">
+        <div className="text-white text-xl animate-pulse">Chargement...</div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#050816] via-[#16052a] to-[#3b0b6b] flex items-center justify-center px-4">
