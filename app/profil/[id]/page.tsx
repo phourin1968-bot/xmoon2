@@ -95,6 +95,8 @@ export default function ProfilPage() {
     return zodiacEmojis[sign] || '✨';
   };
 
+
+  
   const nextPhoto = () => {
     setCurrentPhotoIndex((prev) => (prev + 1) % photos.length);
   };
