@@ -48,6 +48,7 @@ export default function ProfileSetupPage() {
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [birthdate, setBirthdate] = useState("");
+  const [birthtime, setBirthtime] = useState("");  // NOUVEAU : Heure de naissance
   const [gender, setGender] = useState("");
   const [zodiacSign, setZodiacSign] = useState("");
   
@@ -108,6 +109,7 @@ export default function ProfileSetupPage() {
         setUsername(profile.username || "");
         setPhone(profile.phone || "");
         setBirthdate(profile.birthdate || "");
+        setBirthtime(profile.birthtime || "");  // NOUVEAU : Charger l'heure
         setGender(profile.gender || "");
         setZodiacSign(profile.zodiac_sign || "");
         setCity(profile.city || "");
@@ -352,6 +354,7 @@ export default function ProfileSetupPage() {
           username,
           phone,
           birthdate,
+          birthtime,  // NOUVEAU : Sauvegarder l'heure
           zodiac_sign: zodiacSign,
           gender,
           city,
@@ -529,7 +532,7 @@ export default function ProfileSetupPage() {
                   className="w-full px-4 py-3 bg-slate-900/50 border border-violet-600/40 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500"
                 />
                 <p className="text-xs text-slate-500 mt-1">
-                  Pour les alertes de sécurité et crisis_alert
+                  Pour les alertes de sécurité uniquement
                 </p>
               </div>
 
@@ -544,6 +547,45 @@ export default function ProfileSetupPage() {
                   }}
                   className="w-full px-4 py-3 bg-slate-900/50 border border-violet-600/40 rounded-lg text-slate-100 focus:outline-none focus:border-violet-500"
                 />
+              </div>
+
+              {/* NOUVEAU : Heure de naissance */}
+              <div>
+                <label className="block text-slate-300 text-sm mb-2">Heure de naissance</label>
+                <select
+                  value={birthtime}
+                  onChange={(e) => setBirthtime(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-900/50 border border-violet-600/40 rounded-lg text-slate-100 focus:outline-none focus:border-violet-500"
+                >
+                  <option value="">Je ne connais pas mon heure</option>
+                  <option value="00:00">00:00 - Minuit</option>
+                  <option value="01:00">01:00</option>
+                  <option value="02:00">02:00</option>
+                  <option value="03:00">03:00</option>
+                  <option value="04:00">04:00</option>
+                  <option value="05:00">05:00</option>
+                  <option value="06:00">06:00</option>
+                  <option value="07:00">07:00</option>
+                  <option value="08:00">08:00</option>
+                  <option value="09:00">09:00</option>
+                  <option value="10:00">10:00</option>
+                  <option value="11:00">11:00</option>
+                  <option value="12:00">12:00 - Midi</option>
+                  <option value="13:00">13:00</option>
+                  <option value="14:00">14:00</option>
+                  <option value="15:00">15:00</option>
+                  <option value="16:00">16:00</option>
+                  <option value="17:00">17:00</option>
+                  <option value="18:00">18:00</option>
+                  <option value="19:00">19:00</option>
+                  <option value="20:00">20:00</option>
+                  <option value="21:00">21:00</option>
+                  <option value="22:00">22:00</option>
+                  <option value="23:00">23:00</option>
+                </select>
+                <p className="text-xs text-slate-500 mt-1">
+                  🌙 L'heure permet de calculer ton Ascendant (optionnel)
+                </p>
               </div>
 
               {zodiacSign && (
@@ -566,7 +608,6 @@ export default function ProfileSetupPage() {
                   <option value="Homme">Homme</option>
                   <option value="Non-binaire">Non-binaire</option>
                   <option value="Autre">Autre</option>
-                  <option value="Shilling">Shilling</option>
                 </select>
               </div>
             </div>

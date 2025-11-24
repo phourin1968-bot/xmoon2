@@ -121,15 +121,21 @@ export default function RegisterPage() {
     <main className="min-h-screen bg-gradient-to-br from-[#050816] via-[#16052a] to-[#3b0b6b] flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-slate-950/80 border border-violet-700/60 rounded-2xl shadow-[0_0_40px_rgba(88,28,135,0.65)] p-8">
         {/* Logo / Titre */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-50 mb-2">
-            🌙 Xmoon
-          </h1>
-          <p className="text-slate-400 text-sm">
-            Crée ton compte et trouve ta moitié cosmique ✨
-          </p>
-        </div>
-
+      <div className="text-center mb-8">
+      <h1 className="text-3xl font-bold text-slate-50 mb-2">
+       🌙 Xmoon
+      </h1>
+      <p className="text-slate-400 text-sm">
+        Crée ton compte et trouve ta moitié cosmique ✨
+      </p>
+       <button
+     type="button"
+     onClick={() => router.push("/how-it-works")}
+     className="mt-3 text-violet-400 hover:text-violet-300 text-sm font-medium flex items-center justify-center gap-1 mx-auto"
+    >
+     <span>✨</span> Comment ça marche ?
+    </button>
+    </div>
         {/* Formulaire */}
         <form onSubmit={handleRegister} className="space-y-4">
           {/* Message d'erreur */}
