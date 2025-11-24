@@ -161,16 +161,31 @@ export default function Header() {
           </button>
 
           {/* Paramètres */}
-          <button
-            onClick={() => {
-              setMenuOpen(false);
-              router.push("/settings");
+<button
+onClick={() => {
+setMenuOpen(false);
+router.push("/settings");
             }}
-            className="w-full flex items-center gap-3 px-4 py-3 text-slate-200 hover:bg-violet-600/20 rounded-lg transition-colors"
-          >
-            <span className="text-xl">⚙️</span>
-            <span className="font-medium">Paramètres</span>
-          </button>
+className="w-full flex items-center gap-3 px-4 py-3 text-slate-200 hover:bg-violet-600/20 rounded-lg transition-colors"
+>
+<span className="text-xl">⚙️</span>
+<span className="font-medium">Paramètres</span>
+</button>
+
+{/* FAQ & Aide */}
+<button
+onClick={() => {
+setMenuOpen(false);
+router.push("/faq");
+            }}
+className="w-full flex items-center gap-3 px-4 py-3 text-slate-200 hover:bg-violet-600/20 rounded-lg transition-colors"
+>
+<span className="text-xl">❓</span>
+<span className="font-medium">FAQ & Aide</span>
+</button>
+
+{/* Séparateur */}
+<div className="my-2 border-t border-slate-700" />
 
           {/* Séparateur */}
           <div className="my-2 border-t border-slate-700" />
