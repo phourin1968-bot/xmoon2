@@ -8,7 +8,7 @@ export async function GET() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
     
-    const { data, error } = await supabase.from('users').select('id').limit(1)
+    const { data, error } = await supabase.from('profiles').select('id').limit(1)
     
     if (error) throw error
     
